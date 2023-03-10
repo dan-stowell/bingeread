@@ -1,7 +1,46 @@
 import Head from 'next/head';
 import styles from '../styles/Home.module.css';
 
-export default function Home() {
+export async function getServerSideProps(context) {
+  // Set your Feedbin API credentials
+  const username = process.env.FEEDBIN_USERNAME
+  const password = process.env.FEEDBIN_PASSWORD
+  
+  // Fetch unread entries from Feedbin API
+  try {
+    const result = await fetch('https://api.feedbin.com/v2/unread_entries.json', {
+      headers: {
+        'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`
+      }
+    });
+    if (result.ok) {
+      const entries = await result.json();
+      return {
+        'props': {
+          'feedbin_success': true,
+          'num_entries': entries.length,
+        }
+      }
+    } else {
+      return {
+        'props': {
+          'feedbin_success': false,
+          'num_entries': 0,
+        }
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    return {
+      'props': {
+        'feedbin_success': false,
+        'num_entries': 0,
+      }
+    }
+  }
+}
+
+export default function Home({feedbin_success, num_entries}) {
   return (
     <div className={styles.container}>
       <Head>
@@ -11,12 +50,15 @@ export default function Home() {
 
       <main>
         <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
+          Bingeread
         </h1>
-
-        <p className={styles.description}>
-          Get started by editing <code>pages/index.js</code>
-        </p>
+        {feedbin_success ?
+          (
+            <p className={styles.description}>You have {num_entries} unread entries!</p>
+          ) : (
+            <p className={styles.description}>Something went wrong calling the Feedbin API.</p>
+          )
+          }
 
         <div className={styles.grid}>
           <a href="https://nextjs.org/docs" className={styles.card}>
